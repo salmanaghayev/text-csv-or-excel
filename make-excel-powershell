@@ -1,0 +1,63 @@
+param (
+    [string]$InputFile = "input.txt",
+    [string]$ExcelPath = "output.xlsx",
+    [string]$SheetName = "ProcessedData"
+)
+
+# Define pattern-replacement pairs
+$replacements = @(
+    @{ Pattern = '\s{2,}'; Replacement = ',' },    # 2+ spaces -> comma
+    @{ Pattern = '\t+'; Replacement = ';' },       # Tabs -> semicolon
+    @{ Pattern = '\s+\|\s+'; Replacement = '|' },  # space|space -> pipe
+    @{ Pattern = ':'; Replacement = '=' }          # colon -> equals
+)
+
+# Start Excel
+$excel = New-Object -ComObject Excel.Application
+$excel.Visible = $false
+$excel.DisplayAlerts = $false
+
+# Open workbook
+$workbook = $excel.Workbooks.Open((Resolve-Path $ExcelPath))
+
+# Delete sheet if it already exists
+foreach ($sheet in $workbook.Sheets) {
+    if ($sheet.Name -eq $SheetName) {
+        $sheet.Delete()
+        break
+    }
+}
+
+# Add new sheet
+$sheet = $workbook.Sheets.Add()
+$sheet.Name = $SheetName
+
+# Read and process lines
+$lines = Get-Content $InputFile
+$row = 1
+foreach ($line in $lines) {
+    $clean = $line.Trim('"')
+
+    foreach ($rule in $replacements) {
+        $clean = [regex]::Replace($clean, $rule.Pattern, $rule.Replacement)
+    }
+
+    # Split cleaned line by comma
+    $columns = $clean -split ','
+
+    for ($col = 0; $col -lt $columns.Count; $col++) {
+        $sheet.Cells.Item($row, $col + 1).Value2 = $columns[$col].Trim()
+    }
+
+    $row++
+}
+
+# Save and clean up
+$workbook.Save()
+$workbook.Close($true)
+$excel.Quit()
+[System.Runtime.Interopservices.Marshal]::ReleaseComObject($excel) | Out-Null
+[System.GC]::Collect()
+[System.GC]::WaitForPendingFinalizers()
+
+Write-Host "✅ Data written to '$SheetName' in '$ExcelPath'"
