@@ -49,3 +49,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     main(args.input, args.excel, args.sheet)
+
+# Usage
+#python3 convert_to_excel_sheet.py -i input.txt -e existing_file.xlsx -s NewSheetName
+
