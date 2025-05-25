@@ -2,7 +2,7 @@ import re
 import argparse
 from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter
-from openpyxl.styles import Font, PatternFill
+from openpyxl.styles import Font, PatternFill, Border, Side
 from openpyxl.formatting import Rule
 from openpyxl.styles.differential import DifferentialStyle
 import os
@@ -54,6 +54,14 @@ def main(input_files, excel_file):
         header_fill = PatternFill(start_color="FFD700", end_color="FFD700", fill_type="solid")
         header_font = Font(bold=True, color="000000", size=12)
 
+        # Define thick border style
+        thick_border = Border(
+            left=Side(style='thick'),
+            right=Side(style='thick'),
+            top=Side(style='thick'),
+            bottom=Side(style='thick')
+        )
+
         # Write data to the new sheet
         col_widths = dict()
         for row_idx, row in enumerate(rows, start=1):
@@ -62,6 +70,7 @@ def main(input_files, excel_file):
                 cell = ws.cell(row=row_idx, column=col_idx, value=value)
                 col_letter = get_column_letter(col_idx)
                 col_widths[col_letter] = max(col_widths.get(col_letter, 0), len(value) + 2)
+                cell.border = thick_border
                 if row_idx == 1:  # Apply style to header
                     cell.fill = header_fill
                     cell.font = header_font
