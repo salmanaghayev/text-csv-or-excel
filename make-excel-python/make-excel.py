@@ -3,7 +3,8 @@ import argparse
 from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import Font, PatternFill
-from openpyxl.formatting.rule import FormulaRule
+from openpyxl.formatting import Rule
+from openpyxl.styles.differential import DifferentialStyle
 import os
 
 # Define pattern-replacement rules
@@ -57,23 +58,29 @@ def main(input_file, excel_file, sheet_name):
                 cell.fill = header_fill
                 cell.font = header_font
 
+    # Add filter to the headers
+    ws.auto_filter.ref = ws.dimensions
+
     # Add conditional formatting to columns B and C
     green_fill = PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid")
     red_fill = PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid")
+
+    green_dxf = DifferentialStyle(fill=green_fill)
+    red_dxf = DifferentialStyle(fill=red_fill)
 
     max_row = ws.max_row
 
     # Column B (2nd) conditional formatting
     ws.conditional_formatting.add(f"B2:B{max_row}",
-        FormulaRule(formula=["EXACT(B2,\"up\")"], fill=green_fill))
+        Rule(type="expression", formula=["EXACT(B2,\"up\")"], dxf=green_dxf))
     ws.conditional_formatting.add(f"B2:B{max_row}",
-        FormulaRule(formula=["NOT(EXACT(B2,\"up\"))"], fill=red_fill))
+        Rule(type="expression", formula=["NOT(EXACT(B2,\"up\"))"], dxf=red_dxf))
 
     # Column C (3rd) conditional formatting
     ws.conditional_formatting.add(f"C2:C{max_row}",
-        FormulaRule(formula=["EXACT(C2,\"up\")"], fill=green_fill))
+        Rule(type="expression", formula=["EXACT(C2,\"up\")"], dxf=green_dxf))
     ws.conditional_formatting.add(f"C2:C{max_row}",
-        FormulaRule(formula=["NOT(EXACT(C2,\"up\"))"], fill=red_fill))
+        Rule(type="expression", formula=["NOT(EXACT(C2,\"up\"))"], dxf=red_dxf))
 
     # Save workbook
     try:
