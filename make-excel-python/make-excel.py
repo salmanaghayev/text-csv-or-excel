@@ -2,10 +2,12 @@ import re
 import argparse
 from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter
+from openpyxl.styles import Font, PatternFill
+import os
 
 # Define pattern-replacement rules
 replacements = [
-    (r'\s{2,}', ','),     # Replace 2+ spaces with comma
+    (r'\s{2,}', ';'),     # Replace 2+ spaces with semicolon
     (r'\t+', ';'),        # Replace tabs with semicolon
     (r'\s+\|\s+', '|'),   # Replace space-pipe-space with pipe
     (r':', '=')           # Replace colon with equals
@@ -22,24 +24,46 @@ def main(input_file, excel_file, sheet_name):
     with open(input_file, 'r', encoding='utf-8') as infile:
         lines = [process_line(line) for line in infile]
 
-    # Split each line into a list of fields
-    rows = [line.split(',') for line in lines]
+    # Split each line into a list of fields using semicolon
+    rows = [line.split(';') for line in lines]
 
-    # Load existing workbook and create new sheet
-    wb = load_workbook(excel_file)
+    # Load or create workbook
+    if os.path.exists(excel_file):
+        wb = load_workbook(excel_file)
+    else:
+        from openpyxl import Workbook
+        wb = Workbook()
+        default_sheet = wb.active
+        wb.remove(default_sheet)
+
+    # Delete existing sheet if present
     if sheet_name in wb.sheetnames:
         print(f"Sheet '{sheet_name}' already exists. Overwriting.")
         del wb[sheet_name]
+
+    # Create new sheet
     ws = wb.create_sheet(title=sheet_name)
+
+    # Define header style
+    header_fill = PatternFill(start_color="FFD700", end_color="FFD700", fill_type="solid")
+    header_font = Font(bold=True, color="000000", size=12)
 
     # Write data to the new sheet
     for row_idx, row in enumerate(rows, start=1):
         for col_idx, value in enumerate(row, start=1):
-            ws.cell(row=row_idx, column=col_idx, value=value.strip())
+            cell = ws.cell(row=row_idx, column=col_idx, value=value.strip())
+            if row_idx == 1:  # Apply style to header
+                cell.fill = header_fill
+                cell.font = header_font
 
     # Save workbook
-    wb.save(excel_file)
-    print(f"Data written to sheet '{sheet_name}' in '{excel_file}'.")
+    try:
+        wb.save(excel_file)
+        print(f"Data written to sheet '{sheet_name}' in '{excel_file}'.")
+    except PermissionError as e:
+        print(f"❌ Permission error saving file: {e}")
+    except Exception as e:
+        print(f"❌ Unexpected error: {e}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Clean and write text data to a new sheet in Excel.")
@@ -49,7 +73,3 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     main(args.input, args.excel, args.sheet)
-
-# Usage
-#python3 convert_to_excel_sheet.py -i input.txt -e existing_file.xlsx -s NewSheetName
-
