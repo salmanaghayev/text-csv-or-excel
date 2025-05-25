@@ -51,12 +51,20 @@ def main(input_file, excel_file, sheet_name):
     header_font = Font(bold=True, color="000000", size=12)
 
     # Write data to the new sheet
+    col_widths = dict()
     for row_idx, row in enumerate(rows, start=1):
         for col_idx, value in enumerate(row, start=1):
-            cell = ws.cell(row=row_idx, column=col_idx, value=value.strip())
+            value = value.strip()
+            cell = ws.cell(row=row_idx, column=col_idx, value=value)
+            col_letter = get_column_letter(col_idx)
+            col_widths[col_letter] = max(col_widths.get(col_letter, 0), len(value) + 2)
             if row_idx == 1:  # Apply style to header
                 cell.fill = header_fill
                 cell.font = header_font
+
+    # Adjust column widths
+    for col_letter, width in col_widths.items():
+        ws.column_dimensions[col_letter].width = width
 
     # Add filter to the headers
     ws.auto_filter.ref = ws.dimensions
