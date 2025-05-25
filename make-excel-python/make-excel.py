@@ -61,7 +61,7 @@ def main(input_file, excel_file, sheet_name):
     # Add filter to the headers
     ws.auto_filter.ref = ws.dimensions
 
-    # Add conditional formatting to columns B and C
+    # Add conditional formatting for entire row based on columns B and C
     green_fill = PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid")
     red_fill = PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid")
 
@@ -69,18 +69,18 @@ def main(input_file, excel_file, sheet_name):
     red_dxf = DifferentialStyle(fill=red_fill)
 
     max_row = ws.max_row
+    max_col = ws.max_column
+    last_col_letter = get_column_letter(max_col)
 
-    # Column B (2nd) conditional formatting
-    ws.conditional_formatting.add(f"B2:B{max_row}",
-        Rule(type="expression", formula=["EXACT(B2,\"up\")"], dxf=green_dxf))
-    ws.conditional_formatting.add(f"B2:B{max_row}",
-        Rule(type="expression", formula=["NOT(EXACT(B2,\"up\"))"], dxf=red_dxf))
+    # Green row if both B and C are "up"
+    formula_green = "=AND(EXACT($B2,\"up\"), EXACT($C2,\"up\"))"
+    ws.conditional_formatting.add(f"A2:{last_col_letter}{max_row}",
+        Rule(type="expression", formula=[formula_green], dxf=green_dxf))
 
-    # Column C (3rd) conditional formatting
-    ws.conditional_formatting.add(f"C2:C{max_row}",
-        Rule(type="expression", formula=["EXACT(C2,\"up\")"], dxf=green_dxf))
-    ws.conditional_formatting.add(f"C2:C{max_row}",
-        Rule(type="expression", formula=["NOT(EXACT(C2,\"up\"))"], dxf=red_dxf))
+    # Red row if any of B or C is not "up"
+    formula_red = "=NOT(AND(EXACT($B2,\"up\"), EXACT($C2,\"up\")))"
+    ws.conditional_formatting.add(f"A2:{last_col_letter}{max_row}",
+        Rule(type="expression", formula=[formula_red], dxf=red_dxf))
 
     # Save workbook
     try:
