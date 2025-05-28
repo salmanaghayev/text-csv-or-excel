@@ -41,22 +41,24 @@ def main(input_files, additional_files, excel_file):
 
         rows = [line.split(';') for line in lines]
 
-        # Read corresponding additional file
+        # Read corresponding additional file and map third col to first col
         additional_map = {}
         if os.path.exists(additional_file):
             with open(additional_file, 'r', encoding='utf-8') as adfile:
                 for line in adfile:
                     parts = process_line(line).split(';')
                     if len(parts) >= 3:
-                        additional_map[parts[2]] = parts[0]  # map third column to first
+                        key = parts[2].strip()
+                        value = parts[0].strip()
+                        additional_map[key] = value
 
-        # Add additional column to each row (excluding header)
+        # Add mapped value to each row from input file where input[0] matches additional[2]
         for i, row in enumerate(rows):
             if i == 0:
-                row.append("Extra Info")  # Header for new column
+                row.append("Extra Info")
             else:
-                matching_key = row[0]
-                extra_value = additional_map.get(matching_key, "")
+                input_key = row[0].strip()
+                extra_value = additional_map.get(input_key, "")
                 row.append(extra_value)
 
         # Delete existing sheet if present
