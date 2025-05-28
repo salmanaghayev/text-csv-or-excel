@@ -2,7 +2,7 @@ import re
 import argparse
 from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter
-from openpyxl.styles import Font, PatternFill, Border, Side
+from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
 from openpyxl.formatting import Rule
 from openpyxl.styles.differential import DifferentialStyle
 import os
@@ -22,7 +22,7 @@ def process_line(line):
         line = re.sub(pattern, replacement, line)
     return line
 
-def main(input_files, excel_file):
+def main(input_files, additional_files, excel_file):
     # Load or create workbook
     if os.path.exists(excel_file):
         wb = load_workbook(excel_file)
@@ -32,15 +32,32 @@ def main(input_files, excel_file):
         default_sheet = wb.active
         wb.remove(default_sheet)
 
-    for input_file in input_files:
+    for input_file, additional_file in zip(input_files, additional_files):
         sheet_name = os.path.splitext(os.path.basename(input_file))[0]
 
-        # Read and clean lines
+        # Read and clean lines from input file
         with open(input_file, 'r', encoding='utf-8') as infile:
             lines = [process_line(line) for line in infile]
 
-        # Split each line into a list of fields using semicolon
         rows = [line.split(';') for line in lines]
+
+        # Read corresponding additional file
+        additional_map = {}
+        if os.path.exists(additional_file):
+            with open(additional_file, 'r', encoding='utf-8') as adfile:
+                for line in adfile:
+                    parts = process_line(line).split(';')
+                    if len(parts) >= 3:
+                        additional_map[parts[2]] = parts[0]  # map third column to first
+
+        # Add additional column to each row (excluding header)
+        for i, row in enumerate(rows):
+            if i == 0:
+                row.append("Extra Info")  # Header for new column
+            else:
+                matching_key = row[0]
+                extra_value = additional_map.get(matching_key, "")
+                row.append(extra_value)
 
         # Delete existing sheet if present
         if sheet_name in wb.sheetnames:
@@ -53,6 +70,7 @@ def main(input_files, excel_file):
         # Define header style
         header_fill = PatternFill(start_color="FFD700", end_color="FFD700", fill_type="solid")
         header_font = Font(bold=True, color="000000", size=12)
+        header_alignment = Alignment(vertical="center", horizontal="center")
 
         # Define thick border style
         thick_border = Border(
@@ -71,9 +89,10 @@ def main(input_files, excel_file):
                 col_letter = get_column_letter(col_idx)
                 col_widths[col_letter] = max(col_widths.get(col_letter, 0), len(value) + 2)
                 cell.border = thick_border
-                if row_idx == 1:  # Apply style to header
+                if row_idx == 1:
                     cell.fill = header_fill
                     cell.font = header_font
+                    cell.alignment = header_alignment
 
         # Adjust column widths
         for col_letter, width in col_widths.items():
@@ -96,15 +115,11 @@ def main(input_files, excel_file):
         max_col = ws.max_column
         last_col_letter = get_column_letter(max_col)
 
-        # Green row if both B and C are "up"
         formula_green = "=AND(EXACT($B2,\"up\"), EXACT($C2,\"up\"))"
-        ws.conditional_formatting.add(f"A2:{last_col_letter}{max_row}",
-            Rule(type="expression", formula=[formula_green], dxf=green_dxf))
-
-        # Red row if any of B or C is not "up"
         formula_red = "=NOT(AND(EXACT($B2,\"up\"), EXACT($C2,\"up\")))"
-        ws.conditional_formatting.add(f"A2:{last_col_letter}{max_row}",
-            Rule(type="expression", formula=[formula_red], dxf=red_dxf))
+
+        ws.conditional_formatting.add(f"A2:{last_col_letter}{max_row}", Rule(type="expression", formula=[formula_green], dxf=green_dxf))
+        ws.conditional_formatting.add(f"A2:{last_col_letter}{max_row}", Rule(type="expression", formula=[formula_red], dxf=red_dxf))
 
     # Save workbook
     try:
@@ -116,11 +131,13 @@ def main(input_files, excel_file):
         print(f"❌ Unexpected error: {e}")
 
 if __name__ == "__main__":
-    # Example list of input files (sheet name will be based on file name)
     input_files = [
         "input1.txt",
         "input2.txt"
     ]
-
+    additional_files = [
+        "additional1.txt",
+        "additional2.txt"
+    ]
     excel_file = "output.xlsx"
-    main(input_files, excel_file)
+    main(input_files, additional_files, excel_file)
