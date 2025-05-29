@@ -59,7 +59,8 @@ def main(input_files, additional_files, excel_file):
             else:
                 input_key = row[0].strip()
                 extra_values = additional_map.get(input_key, [])
-                row.append(", ".join(extra_values))
+                joined_values = ", ".join(extra_values)
+                row.append(joined_values)
 
         # Delete existing sheet if present
         if sheet_name in wb.sheetnames:
@@ -89,7 +90,13 @@ def main(input_files, additional_files, excel_file):
                 value = value.strip()
                 cell = ws.cell(row=row_idx, column=col_idx, value=value)
                 col_letter = get_column_letter(col_idx)
-                col_widths[col_letter] = max(col_widths.get(col_letter, 0), len(value) + 2)
+                if row_idx == 1 and col_idx == len(row):  # limit width of 'Extra Info' column
+                    max_width = 50
+                    display_value = value[:max_width] + ('...' if len(value) > max_width else '')
+                    cell.value = display_value
+                    col_widths[col_letter] = max(col_widths.get(col_letter, 0), len(display_value) + 2)
+                else:
+                    col_widths[col_letter] = max(col_widths.get(col_letter, 0), len(value) + 2)
                 cell.border = thick_border
                 if row_idx == 1:
                     cell.fill = header_fill
