@@ -59,12 +59,12 @@ def main(input_files, additional_files, excel_file):
         # Add mapped value to each row from input file where input[0] matches additional[2]
         for i, row in enumerate(rows):
             if i == 0:
-                row.append("Extra Info")
+                row.extend(["Extra Info", "Vendor", "Notes"])
             else:
                 input_key = row[0].strip()
                 extra_values = additional_map.get(input_key, [])
                 formatted_values = format_extra_info(extra_values)
-                row.append(formatted_values)
+                row.extend([formatted_values, "", ""])  # Placeholder values for Vendor and Notes
 
         # Delete existing sheet if present
         if sheet_name in wb.sheetnames:
