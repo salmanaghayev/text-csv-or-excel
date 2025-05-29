@@ -22,6 +22,10 @@ def process_line(line):
         line = re.sub(pattern, replacement, line)
     return line
 
+def format_extra_info(values, items_per_line=5):
+    grouped = [', '.join(values[i:i+items_per_line]) for i in range(0, len(values), items_per_line)]
+    return '\n'.join(grouped)
+
 def main(input_files, additional_files, excel_file):
     # Load or create workbook
     if os.path.exists(excel_file):
@@ -59,8 +63,8 @@ def main(input_files, additional_files, excel_file):
             else:
                 input_key = row[0].strip()
                 extra_values = additional_map.get(input_key, [])
-                joined_values = ", ".join(extra_values)
-                row.append(joined_values)
+                formatted_values = format_extra_info(extra_values)
+                row.append(formatted_values)
 
         # Delete existing sheet if present
         if sheet_name in wb.sheetnames:
@@ -90,13 +94,8 @@ def main(input_files, additional_files, excel_file):
                 value = value.strip()
                 cell = ws.cell(row=row_idx, column=col_idx, value=value)
                 col_letter = get_column_letter(col_idx)
-                if row_idx == 1 and col_idx == len(row):  # limit width of 'Extra Info' column
-                    max_width = 50
-                    display_value = value[:max_width] + ('...' if len(value) > max_width else '')
-                    cell.value = display_value
-                    col_widths[col_letter] = max(col_widths.get(col_letter, 0), len(display_value) + 2)
-                else:
-                    col_widths[col_letter] = max(col_widths.get(col_letter, 0), len(value) + 2)
+                for line in value.split('\n'):
+                    col_widths[col_letter] = max(col_widths.get(col_letter, 0), len(line) + 2)
                 cell.border = thick_border
                 if row_idx == 1:
                     cell.fill = header_fill
