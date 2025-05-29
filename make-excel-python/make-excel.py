@@ -41,7 +41,7 @@ def main(input_files, additional_files, excel_file):
 
         rows = [line.split(';') for line in lines]
 
-        # Read corresponding additional file and map third col to first col
+        # Read corresponding additional file and map third col to a list of first col values
         additional_map = {}
         if os.path.exists(additional_file):
             with open(additional_file, 'r', encoding='utf-8') as adfile:
@@ -50,7 +50,7 @@ def main(input_files, additional_files, excel_file):
                     if len(parts) >= 3:
                         key = parts[2].strip()
                         value = parts[0].strip()
-                        additional_map[key] = value
+                        additional_map.setdefault(key, []).append(value)
 
         # Add mapped value to each row from input file where input[0] matches additional[2]
         for i, row in enumerate(rows):
@@ -58,8 +58,8 @@ def main(input_files, additional_files, excel_file):
                 row.append("Extra Info")
             else:
                 input_key = row[0].strip()
-                extra_value = additional_map.get(input_key, "")
-                row.append(extra_value)
+                extra_values = additional_map.get(input_key, [])
+                row.append(", ".join(extra_values))
 
         # Delete existing sheet if present
         if sheet_name in wb.sheetnames:
