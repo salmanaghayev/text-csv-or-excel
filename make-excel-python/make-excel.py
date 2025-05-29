@@ -90,17 +90,28 @@ def main(input_files, additional_files, excel_file):
         # Write data to the new sheet
         col_widths = dict()
         for row_idx, row in enumerate(rows, start=1):
+            max_lines = 1  # track max line count in this row
             for col_idx, value in enumerate(row, start=1):
                 value = value.strip()
                 cell = ws.cell(row=row_idx, column=col_idx, value=value)
                 col_letter = get_column_letter(col_idx)
+
+                # Update max column width
                 for line in value.split('\n'):
                     col_widths[col_letter] = max(col_widths.get(col_letter, 0), len(line) + 2)
+
                 cell.border = thick_border
                 if row_idx == 1:
                     cell.fill = header_fill
                     cell.font = header_font
                     cell.alignment = header_alignment
+                else:
+                    cell.alignment = Alignment(wrap_text=True)
+                    max_lines = max(max_lines, value.count('\n') + 1)
+
+            # Adjust row height for wrapped text
+            if row_idx != 1:
+                ws.row_dimensions[row_idx].height = max_lines * 15
 
         # Adjust column widths
         for col_letter, width in col_widths.items():
